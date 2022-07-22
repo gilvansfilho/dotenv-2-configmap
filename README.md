@@ -3,6 +3,8 @@ Bash script to create openshift or kubernetes configmap from .env or .properties
 
 This is different from `--from-file` once `dotenv-2-configmap` extract key=value pairs from file and inject directly in configmap and `--from-file` inject the file in configmap.
 
+This is different from `--from-env-file` once `dotenv-2-configmap` allows you filter lines and change file field delimiter.
+
 Run the samples to see difference.
 
 ## How To
