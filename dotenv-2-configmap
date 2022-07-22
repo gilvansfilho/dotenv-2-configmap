@@ -1,0 +1,81 @@
+dotenv-2-configmap() {
+    
+    local valid=true
+    declare dryrun="no"
+    declare cli="oc"
+
+    # read parameters
+    if [[ $1 != *"-"* ]]; then
+        declare name=$1
+    fi
+
+    while [ $# -gt 0 ]; do
+        if [[ $1 == *"--"* ]]; then
+            param="${1/--/}"
+            declare $param="$2"
+        elif [[ $1 == *"-"* ]]; then
+            param="${1/-/}"
+            declare $param="$2"
+        fi
+        shift
+    done
+
+    # define file path
+    if [ -z "$file" ] && [ -z "$f" ]; then
+        echo "Error: file is required";
+        valid=false;
+    else
+        [ -z $file ] && declare file=$f
+    fi
+
+    # define name
+    if [ -z "$name" ]; then
+        echo "Error: configmap name is required";
+        valid=false;
+    fi
+
+    if [ "$cli" != "oc" ] && [ "$cli" != "kubectl" ]; then
+        echo "Error: Invalid value for cli";
+        valid=false;
+    fi
+
+    # define namespace
+    if [ -z "$namespace" ] && [ -z "$n" ]; then
+        declare namespace=$(oc config view --minify -o 'jsonpath={..namespace}')
+    else
+        [ -z $namespace ] && declare namespace=$n
+    fi
+
+    if [ "$valid" = true ]; then 
+
+        declare values=$(awk -F= $filter'{printf "--from-literal="$1"="$2 " "}' $file)
+        declare command=$(echo ${cli} create configmap $name $values -n $namespace)
+        echo ">> Creating configmap [$name] in namespace [$namespace] from file [$file]"
+
+        if [ "$dryrun" = "no" ] || [ "$dryrun" = "false" ]; then
+            eval $command
+        else
+            echo $command
+        fi
+        
+    else
+        echo ""
+        echo "USAGE"
+        echo "\t dotenv-2-configmap configmap_name -f file_path [-n namespace] [--dryrun] [--cli oc|kubectl]"
+        echo ""
+        echo "OPTIONS"
+        echo -e "\t --cli"
+        echo -e "\t\t CLI to use. Default: oc"
+        echo -e "\t --dryrun"
+        echo -e "\t\t To run in dryrun mode."
+        echo -e "\t -f, --file"
+        echo -e "\t\t Path to file."
+        echo -e "\t --filter"
+        echo -e "\t\t awk filter expression."
+        echo -e "\t -n, --namespace"
+        echo -e "\t\t Namespace to create configmap. Default: Current namespace"
+        echo ""
+        
+    fi
+
+}
