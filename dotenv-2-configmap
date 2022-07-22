@@ -3,6 +3,7 @@ dotenv-2-configmap() {
     local valid=true
     declare dryrun="no"
     declare cli="oc"
+    local delimiter="="
 
     # read parameters
     if [[ $1 != *"-"* ]]; then
@@ -41,14 +42,19 @@ dotenv-2-configmap() {
 
     # define namespace
     if [ -z "$namespace" ] && [ -z "$n" ]; then
-        declare namespace=$(oc config view --minify -o 'jsonpath={..namespace}')
+        declare namespace=$(${cli} config view --minify -o 'jsonpath={..namespace}')
     else
         [ -z $namespace ] && declare namespace=$n
     fi
 
+    # define delimiter
+    if [ ! -z "$D" ]; then
+        delimiter=$D
+    fi
+
     if [ "$valid" = true ]; then 
 
-        declare values=$(awk -F= $filter'{printf "--from-literal="$1"="$2 " "}' $file)
+        declare values=$(awk -F$delimiter $filter'{printf "--from-literal="$1"="$2 " "}' $file)
         declare command=$(echo ${cli} create configmap $name $values -n $namespace)
         echo ">> Creating configmap [$name] in namespace [$namespace] from file [$file]"
 
@@ -61,13 +67,15 @@ dotenv-2-configmap() {
     else
         echo ""
         echo "USAGE"
-        echo "\t dotenv-2-configmap configmap_name -f file_path [-n namespace] [--dryrun] [--cli oc|kubectl]"
+        echo "\t dotenv-2-configmap configmap_name -f file_path [-n namespace] [--dryrun] [--cli oc|kubectl] [-D delimiter]"
         echo ""
         echo "OPTIONS"
         echo -e "\t --cli"
         echo -e "\t\t CLI to use. Default: oc"
         echo -e "\t --dryrun"
         echo -e "\t\t To run in dryrun mode."
+        echo -e "\t -D"
+        echo -e "\t\t Define delimiter. Default: ="
         echo -e "\t -f, --file"
         echo -e "\t\t Path to file."
         echo -e "\t --filter"
